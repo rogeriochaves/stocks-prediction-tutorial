@@ -5,42 +5,40 @@ import datetime
 import numpy as np
 from sklearn import preprocessing, cross_validation, svm
 from sklearn.linear_model import LinearRegression
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plot
 from matplotlib import style
 
 style.use('ggplot')
 
 print("Downloading data...")
-df = Quandl.get('WIKI/GOOGL')
+data = Quandl.get('WIKI/GOOGL')
 print("Data ready")
 
-df = df[['Adj. Open', 'Adj. High', 'Adj. Low', 'Adj. Close', 'Adj. Volume']]
+data['High To Low Percentage'] = (
+    data['Adj. High'] - data['Adj. Close']) / data['Adj. Close'] * 100
+data['Change Percentage'] = (
+    data['Adj. Close'] - data['Adj. Open']) / data['Adj. Open'] * 100
 
-df['High To Low Percentage'] = (
-    df['Adj. High'] - df['Adj. Close']) / df['Adj. Close'] * 100
-df['Change Percentage'] = (
-    df['Adj. Close'] - df['Adj. Open']) / df['Adj. Open'] * 100
-
-df = df[[
+data = data[[
     'Adj. Close', 'High To Low Percentage', 'Change Percentage', 'Adj. Volume'
 ]]
 
 forecast_col = 'Adj. Close'
 
 # defines that the label is based of 10% of previous Adj. Close prices
-forecast_range = int(math.ceil(0.01 * len(df)))
-df['label'] = df[forecast_col].shift(-forecast_range)
+forecast_range = int(math.ceil(0.01 * len(data)))
+data['label'] = data[forecast_col].shift(-forecast_range)
 
 # X is features, everything but label
-X = np.array(df.drop(['label'], 1))
+X = np.array(data.drop(['label'], 1))
 X = preprocessing.scale(X)
 # Features for the last n days (like 33 days)
 X_lately = X[-forecast_range:]
 # All features but the latest n days (like 33 days)
 X = X[:-forecast_range]
 # drop NaNs or else we get an error while trying to run it through the classification algorithm, they will exist because of the previous shift
-df.dropna(inplace=True)
-y = np.array(df['label'])
+data.dropna(inplace=True)
+y = np.array(data['label'])
 
 # split data for be used later for training and testing
 X_train, X_test, y_train, y_test = cross_validation.train_test_split(
@@ -62,9 +60,9 @@ print("Accuracy", accuracy)
 
 # plotting graphic
 
-df['Forecast'] = np.nan
+data['Forecast'] = np.nan
 
-last_date = df.iloc[-1].name
+last_date = data.iloc[-1].name
 last_unix = last_date.timestamp()
 one_day = 86400
 next_unix = last_unix + one_day
@@ -72,11 +70,22 @@ next_unix = last_unix + one_day
 for i in forecast_result:
     next_date = datetime.datetime.fromtimestamp(next_unix)
     next_unix += one_day
-    df.loc[next_date] = [np.nan for _ in range(len(df.columns) - 1)] + [i]
+    data.loc[next_date] = [np.nan for _ in range(len(data.columns) - 1)] + [i]
 
-df['Adj. Close'].plot()
-df['Forecast'].plot()
-plt.legend(loc=4)
-plt.xlabel('Date')
-plt.ylabel('Price')
-plt.show()
+# prediction prices
+
+prediction_data = data[-forecast_range:]
+prediction_data['Forecast'].plot()
+plot.legend(loc=4)
+plot.xlabel('Date')
+plot.ylabel('Price')
+plot.show()
+
+# full prices history
+
+data['Adj. Close'].plot()
+data['Forecast'].plot()
+plot.legend(loc=4)
+plot.xlabel('Date')
+plot.ylabel('Price')
+plot.show()
