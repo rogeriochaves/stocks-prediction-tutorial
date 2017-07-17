@@ -1,9 +1,14 @@
 import pandas as pd
 import quandl as Quandl
 import math
+import datetime
 import numpy as np
 from sklearn import preprocessing, cross_validation, svm
 from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
+from matplotlib import style
+
+style.use('ggplot')
 
 print("Downloading data...")
 df = Quandl.get('WIKI/GOOGL')
@@ -54,3 +59,24 @@ forecast_result = classifier.predict(X_lately)
 print("GOOG prices for the next", forecast_range, "days")
 print(forecast_result)
 print("Accuracy", accuracy)
+
+# plotting graphic
+
+df['Forecast'] = np.nan
+
+last_date = df.iloc[-1].name
+last_unix = last_date.timestamp()
+one_day = 86400
+next_unix = last_unix + one_day
+
+for i in forecast_result:
+    next_date = datetime.datetime.fromtimestamp(next_unix)
+    next_unix += one_day
+    df.loc[next_date] = [np.nan for _ in range(len(df.columns) - 1)] + [i]
+
+df['Adj. Close'].plot()
+df['Forecast'].plot()
+plt.legend(loc=4)
+plt.xlabel('Date')
+plt.ylabel('Price')
+plt.show()
