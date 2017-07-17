@@ -1,3 +1,13 @@
+
+# coding: utf-8
+
+# # Predicting GOOG Stocks
+# 
+# ## Setup
+
+# In[32]:
+
+
 import pandas as pd
 import quandl as Quandl
 import math
@@ -10,9 +20,20 @@ from matplotlib import style
 
 style.use('ggplot')
 
-print("Downloading data...")
+
+# This is the data we have available from Quandl
+
+# In[33]:
+
+
 data = Quandl.get('WIKI/GOOGL')
-print("Data ready")
+print(data)
+
+
+# ## Label and Features
+
+# In[34]:
+
 
 data['High To Low Percentage'] = (
     data['Adj. High'] - data['Adj. Close']) / data['Adj. Close'] * 100
@@ -40,6 +61,15 @@ X = X[:-forecast_range]
 data.dropna(inplace=True)
 y = np.array(data['label'])
 
+print("X (features, what we use for prediction)", X);
+print("y (label, what we want to predict)", forecast_col, y);
+
+
+# ## Train, Test and Prediction
+
+# In[35]:
+
+
 # split data for be used later for training and testing
 X_train, X_test, y_train, y_test = cross_validation.train_test_split(
     X, y, test_size=0.2)
@@ -58,7 +88,13 @@ print("GOOG prices for the next", forecast_range, "days")
 print(forecast_result)
 print("Accuracy", accuracy)
 
-# plotting graphic
+
+# ## Graphics
+
+# ### Predicted Prices
+
+# In[36]:
+
 
 data['Forecast'] = np.nan
 
@@ -72,8 +108,6 @@ for i in forecast_result:
     next_unix += one_day
     data.loc[next_date] = [np.nan for _ in range(len(data.columns) - 1)] + [i]
 
-# prediction prices
-
 prediction_data = data[-forecast_range:]
 prediction_data['Forecast'].plot()
 plot.legend(loc=4)
@@ -81,7 +115,11 @@ plot.xlabel('Date')
 plot.ylabel('Price')
 plot.show()
 
-# full prices history
+
+# ### Full Prices History
+
+# In[37]:
+
 
 data['Adj. Close'].plot()
 data['Forecast'].plot()
@@ -89,3 +127,4 @@ plot.legend(loc=4)
 plot.xlabel('Date')
 plot.ylabel('Price')
 plot.show()
+
