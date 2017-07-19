@@ -1,12 +1,10 @@
-
 # coding: utf-8
 
 # # Predicting GOOG Stocks
-# 
+#
 # ## Setup
 
-# In[32]:
-
+# In[0]:
 
 import pandas as pd
 import quandl as Quandl
@@ -17,114 +15,124 @@ from sklearn import preprocessing, cross_validation, svm
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plot
 from matplotlib import style
+import os
 
 style.use('ggplot')
 
-
 # This is the data we have available from Quandl
 
-# In[33]:
+# In[1]:
+
+# 'WIKI/GOOG'
+
+# Use 21 last days of data to predict the stock value
+forecast_range = 21
+
+Quandl.ApiConfig.api_key = os.environ['QUANDL_KEY']
 
 
-data = Quandl.get('WIKI/GOOGL')
-print(data)
+def train_with(classifier, stock):
+    data = Quandl.get(stock)
+    print(data)
 
+    # ## Label and Features
 
-# ## Label and Features
+    # In[2]:
 
-# In[34]:
+    data['High To Low Percentage'] = (
+        data['Adj. High'] - data['Adj. Close']) / data['Adj. Close'] * 100
+    data['Change Percentage'] = (
+        data['Adj. Close'] - data['Adj. Open']) / data['Adj. Open'] * 100
 
+    data = data[[
+        'Adj. Close', 'High To Low Percentage', 'Change Percentage',
+        'Adj. Volume'
+    ]]
+    data['Month'] = data.index.month
+    data['Year'] = data.index.year
 
-data['High To Low Percentage'] = (
-    data['Adj. High'] - data['Adj. Close']) / data['Adj. Close'] * 100
-data['Change Percentage'] = (
-    data['Adj. Close'] - data['Adj. Open']) / data['Adj. Open'] * 100
+    forecast_col = 'Adj. Close'
 
-data = data[[
-    'Adj. Close', 'High To Low Percentage', 'Change Percentage', 'Adj. Volume'
-]]
+    data['label'] = data[forecast_col].shift(-forecast_range)
 
-forecast_col = 'Adj. Close'
+    # X is features, everything but label
+    X = np.array(data.drop(['label'], 1))
+    X = preprocessing.scale(X)
 
-# defines that the label is based of 10% of previous Adj. Close prices
-forecast_range = int(math.ceil(0.01 * len(data)))
-data['label'] = data[forecast_col].shift(-forecast_range)
+    # Features for the last 21 days
+    X_lately = X[-forecast_range:]
+    # All features but the latest 21 days
+    X = X[:-forecast_range]
+    # drop NaNs or else we get an error while trying to run it through the classification algorithm, they will exist because of the previous shift
+    data.dropna(inplace=True)
+    y = np.array(data['label'])
 
-# X is features, everything but label
-X = np.array(data.drop(['label'], 1))
-X = preprocessing.scale(X)
-# Features for the last n days (like 33 days)
-X_lately = X[-forecast_range:]
-# All features but the latest n days (like 33 days)
-X = X[:-forecast_range]
-# drop NaNs or else we get an error while trying to run it through the classification algorithm, they will exist because of the previous shift
-data.dropna(inplace=True)
-y = np.array(data['label'])
+    print("X (features, what we use for prediction)", X)
+    print("y (label, what we want to predict)", forecast_col, y)
 
-print("X (features, what we use for prediction)", X);
-print("y (label, what we want to predict)", forecast_col, y);
+    # ## Train, Test and Prediction
 
+    # In[3]:
 
-# ## Train, Test and Prediction
+    # split data for be used later for training and testing
+    X_train, X_test, y_train, y_test = cross_validation.train_test_split(
+        X, y, test_size=0.2)
 
-# In[35]:
+    # train
+    classifier.fit(X_train, y_train)
+    # test
+    accuracy = classifier.score(X_test, y_test)
+    print("Accuracy", accuracy)
+    return X_lately, classifier
 
+    # end setup, now to the prediction!
 
-# split data for be used later for training and testing
-X_train, X_test, y_train, y_test = cross_validation.train_test_split(
-    X, y, test_size=0.2)
-
-# end setup, now to the prediction!
 
 classifier = LinearRegression()
-# train
-classifier.fit(X_train, y_train)
-# test
-accuracy = classifier.score(X_test, y_test)
+_, classifier = train_with(classifier, 'WIKI/GOOG')
+_, classifier = train_with(classifier, 'WIKI/FB')
+_, classifier = train_with(classifier, 'WIKI/GOOGL')
+X_lately, classifier = train_with(classifier, 'WIKI/AAPL')
+
+print("X_lately", X_lately)
 # predict
 forecast_result = classifier.predict(X_lately)
 
-print("GOOG prices for the next", forecast_range, "days")
+print("AAPL prices for the next", forecast_range, "days")
 print(forecast_result)
-print("Accuracy", accuracy)
-
 
 # ## Graphics
 
 # ### Predicted Prices
 
-# In[36]:
-
-
-data['Forecast'] = np.nan
-
-last_date = data.iloc[-1].name
-last_unix = last_date.timestamp()
-one_day = 86400
-next_unix = last_unix + one_day
-
-for i in forecast_result:
-    next_date = datetime.datetime.fromtimestamp(next_unix)
-    next_unix += one_day
-    data.loc[next_date] = [np.nan for _ in range(len(data.columns) - 1)] + [i]
-
-prediction_data = data[-forecast_range:]
-prediction_data['Forecast'].plot()
-plot.legend(loc=4)
-plot.xlabel('Date')
-plot.ylabel('Price')
-plot.show()
-
-
-# ### Full Prices History
-
-# In[37]:
-
-
-data['Adj. Close'].plot()
-data['Forecast'].plot()
-plot.legend(loc=4)
-plot.xlabel('Date')
-plot.ylabel('Price')
-plot.show()
-
+# In[4]:
+#
+# data['Forecast'] = np.nan
+#
+# last_date = data.iloc[-1].name
+# last_unix = last_date.timestamp()
+# one_day = 86400
+# next_unix = last_unix + one_day
+#
+# for i in forecast_result:
+#     next_date = datetime.datetime.fromtimestamp(next_unix)
+#     next_unix += one_day
+#     data.loc[next_date] = [np.nan for _ in range(len(data.columns) - 1)] + [i]
+#
+# prediction_data = data[-forecast_range:]
+# prediction_data['Forecast'].plot()
+# plot.legend(loc=4)
+# plot.xlabel('Date')
+# plot.ylabel('Price')
+# plot.show()
+#
+# # ### Full Prices History
+#
+# # In[5]:
+#
+# data['Adj. Close'].plot()
+# data['Forecast'].plot()
+# plot.legend(loc=4)
+# plot.xlabel('Date')
+# plot.ylabel('Price')
+# plot.show()
