@@ -1,0 +1,3 @@
+stocks/*
+!stocks/.gitkeep
+__pycache__

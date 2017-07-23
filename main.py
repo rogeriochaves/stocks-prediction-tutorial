@@ -16,6 +16,7 @@ from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plot
 from matplotlib import style
 import os
+from lib.stocks import load_stock
 
 style.use('ggplot')
 
@@ -32,8 +33,7 @@ Quandl.ApiConfig.api_key = os.environ['QUANDL_KEY']
 
 
 def train_with(classifier, stock):
-    data = Quandl.get(stock)
-    print(data)
+    data = load_stock(stock)
 
     # ## Label and Features
 
@@ -44,10 +44,7 @@ def train_with(classifier, stock):
     data['Change Percentage'] = (
         data['Adj. Close'] - data['Adj. Open']) / data['Adj. Open'] * 100
 
-    data = data[[
-        'Adj. Close', 'High To Low Percentage', 'Change Percentage',
-        'Adj. Volume'
-    ]]
+    data = data[['Adj. Close', 'Adj. Volume']]
     data['Month'] = data.index.month
     data['Year'] = data.index.year
 
@@ -89,10 +86,10 @@ def train_with(classifier, stock):
 
 
 classifier = LinearRegression()
-_, classifier = train_with(classifier, 'WIKI/GOOG')
-_, classifier = train_with(classifier, 'WIKI/FB')
-_, classifier = train_with(classifier, 'WIKI/GOOGL')
-X_lately, classifier = train_with(classifier, 'WIKI/AAPL')
+_, classifier = train_with(classifier, 'GOOG')
+_, classifier = train_with(classifier, 'FB')
+_, classifier = train_with(classifier, 'GOOGL')
+X_lately, classifier = train_with(classifier, 'AAPL')
 
 print("X_lately", X_lately)
 # predict
