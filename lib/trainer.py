@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plot
 import os
 from lib.stocks import load_stock
+from lib.features import label, features
 
 # Use 21 last days of data to predict the stock value
 
@@ -16,30 +17,18 @@ def forecast_range():
     return 21
 
 
+def capping_range():
+    return 42
+
+
 def load_capped_stock(stock):
     # Load the stocks without the latest days to check prediction
-    return load_stock(stock)[:-forecast_range()]
-
-
-def features(data):
-    X = data[['Adj. Close', 'Adj. Volume']]
-    X['Month'] = data.index.month
-    X['Year'] = data.index.year
-
-    return X
-
-
-def label(data):
-    y = data['Adj. Close'].shift(-forecast_range())
-    y.dropna(inplace=True)
-    return np.array(y)
+    return load_stock(stock)[:-capping_range()]
 
 
 def extract_features_and_label(data):
     X = features(data)
     y = label(data)
-    print("X", X)
-    print("y", y)
 
     # Make X the same size as y
     X = X[:len(y)]
@@ -57,7 +46,7 @@ def train_with(classifier, stock):
     classifier.fit(X_train, y_train)
 
     accuracy = classifier.score(X_test, y_test)
-    print("Accuracy", accuracy)
+    print(stock, "accuracy", accuracy)
 
     return classifier
 
