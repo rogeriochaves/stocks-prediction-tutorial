@@ -17,15 +17,6 @@ def forecast_range():
     return 21
 
 
-def capping_range():
-    return 42
-
-
-def load_capped_stock(stock):
-    # Load the stocks without the latest days to check prediction
-    return load_stock(stock)[:-capping_range()]
-
-
 def extract_features_and_label(data):
     X = features(data)
     y = label(data)
@@ -36,8 +27,8 @@ def extract_features_and_label(data):
     return X, y
 
 
-def train_with(classifier, stock):
-    data = load_capped_stock(stock)
+def train_with(load_stock_fn, classifier, stock):
+    data = load_stock_fn(stock)
     X, y = extract_features_and_label(data)
 
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(
@@ -51,11 +42,11 @@ def train_with(classifier, stock):
     return classifier
 
 
-def trained_classifier():
+def trained_classifier(load_stock_fn):
     classifier = LinearRegression()
-    classifier = train_with(classifier, 'TWTR')
-    classifier = train_with(classifier, 'GOOG')
-    classifier = train_with(classifier, 'FB')
-    classifier = train_with(classifier, 'GOOGL')
-    classifier = train_with(classifier, 'AAPL')
+    classifier = train_with(load_stock, classifier, 'TWTR')
+    classifier = train_with(load_stock, classifier, 'GOOG')
+    classifier = train_with(load_stock, classifier, 'FB')
+    classifier = train_with(load_stock, classifier, 'GOOGL')
+    classifier = train_with(load_stock, classifier, 'AAPL')
     return classifier

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plot
 from matplotlib import style
-from lib.trainer import features, trained_classifier, forecast_range, capping_range
+from lib.trainer import features, trained_classifier, forecast_range
 from lib.stocks import load_stock
 from lib.features import append_feature
 import numpy as np
@@ -10,16 +10,23 @@ import pandas as pd
 
 style.use('ggplot')
 
-classifier = trained_classifier()
+
+def load_capped_stock(stock):
+    # Load the stocks without the latest days to check prediction
+    return load_stock(stock)[:-capping_range]
+
+
+classifier = trained_classifier(load_capped_stock)
+capping_range = 42
 
 
 def simulate_prediction(stock):
     real_stock_data = load_stock(stock)
 
-    data_used_to_predict = real_stock_data[
-        -(capping_range() + forecast_range()):-capping_range()][[
-            'Adj. Close', 'Adj. Volume'
-        ]]
+    data_used_to_predict = real_stock_data[-(capping_range + forecast_range()):
+                                           -capping_range][[
+                                               'Adj. Close', 'Adj. Volume'
+                                           ]]
 
     predicted_prices = []
     for i in range(0, forecast_range()):
@@ -28,7 +35,7 @@ def simulate_prediction(stock):
         append_feature(data_used_to_predict, next_price)
 
     data_that_should_have_been_predicted = real_stock_data[
-        -capping_range():-(capping_range() - forecast_range())]
+        -capping_range:-(capping_range - forecast_range())]
     real_prices = np.array(
         data_that_should_have_been_predicted['Adj. Close'].tolist())
 
@@ -40,7 +47,7 @@ def price_for_next_day(data):
 
 
 def plot_prediction(stock, prediction, real_prices):
-    print("Starting at", capping_range(), "days ago:")
+    print("Starting at", capping_range, "days ago:")
 
     print("Predicted", stock, "prices next", forecast_range(), "days")
     print(prediction)
